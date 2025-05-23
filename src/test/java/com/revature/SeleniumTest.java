@@ -27,6 +27,8 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import io.github.bonigarcia.wdm.WebDriverManager;
+
 public class SeleniumTest {
 
     private WebDriver webDriver;
@@ -34,7 +36,7 @@ public class SeleniumTest {
 
     @BeforeEach
     public void setUp() {
-        System.setProperty("webdriver.edge.driver", "driver/msedgedriver");
+        WebDriverManager.chromedriver().setup();
 
         File file = new File("src/main/java/com/revature/index.html");
         String path = "file://" + file.getAbsolutePath();
@@ -55,54 +57,56 @@ public class SeleniumTest {
         }
     }
 
+    // #1: The user should be able to search for books.
     @SuppressWarnings("rawtypes")
     @Test
     public void testSearchBooksSucceeds() {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) webDriver;
         wait.until(
                 driver -> ((JavascriptExecutor) driver).executeScript("return document.readyState").equals("complete"));
-    
+
         // Test success with Google Books API query #1
         String script = "return searchBooks(arguments[0], arguments[1]).then(JSON.stringify);";
         String actual1 = (String) jsExecutor.executeScript(script, "harry potter", "title");
-    
+
         if (actual1 == null) {
             fail("No results provided by the searchBooks function.");
         }
-    
+
         // Log the actual response for debugging purposes
         System.out.println("Actual response 1: " + actual1.toLowerCase());
-    
+
         // Extract key fields to validate rather than using a direct string match
         Assertions.assertTrue(actual1.contains("Harry Potter"), "Title 'Harry Potter' not found.");
         System.out.println(actual1);
         Assertions.assertTrue(actual1.contains("J. K. Rowling"), "Author 'J.K. Rowling' not found.");
-    
+
         // Test success with query #2
         String actual2 = (String) jsExecutor.executeScript(script, "poe", "author");
         System.out.println("Actual response 2: " + actual2.toLowerCase());
-    
+
         // Validate key fields instead of full string
         Assertions.assertTrue(actual2.contains("Edgar Allan Poe"), "Author 'Edgar Allan Poe' not found.");
         Assertions.assertTrue(actual2.contains("The Tell-Tale Heart"), "Title 'The Tell-Tale Heart' not found.");
-    
+
         // Test success with query #3
         String actual3 = (String) jsExecutor.executeScript(script, "9781472539342", "isbn");
         System.out.println("Actual response 3: " + actual3.toLowerCase());
-    
+
         // Validate key fields instead of full string
         Assertions.assertTrue(actual3.contains("The Road"), "Title 'The Road' not found.");
         Assertions.assertTrue(actual3.contains("Cormac McCarthy"), "Author 'Cormac McCarthy' not found.");
-    
+
         // Assert only 10 books or less are returned from the function
-        Object actual4 = jsExecutor.executeScript("return searchBooks(arguments[0], arguments[1]);", "9781725757264", "isbn");
+        Object actual4 = jsExecutor.executeScript("return searchBooks(arguments[0], arguments[1]);", "9781725757264",
+                "isbn");
         Assertions.assertTrue(((List) actual4).size() <= 10, "The list of books returned is over 10 elements in size.");
     }
-    
 
     // #2: Our application should be able to display book search results.
     @Test
     public void testDisplayOfBookSearchResults() {
+        // Attempt to find the correct UI elements for use
         WebElement searchInput = null;
         WebElement searchType = null;
         WebElement searchButton = null;
@@ -116,10 +120,12 @@ public class SeleniumTest {
             fail(e.getMessage());
         }
 
+        // If found, use UI elements to send a query
         searchType.sendKeys("title");
         searchInput.sendKeys("Test");
         searchButton.click();
 
+        // Ensure the book list has loaded and is populated
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("book-list")));
 
         WebElement bookList = webDriver.findElement(By.id("book-list"));
@@ -127,6 +133,7 @@ public class SeleniumTest {
         List<WebElement> books = bookList.findElements(By.tagName("li"));
         assertFalse(books.isEmpty(), "No books displayed.");
 
+        // Check that each book as correct UI elements within it
         books.forEach(book -> {
             assertNotNull(book.findElement(By.className("title-element")).getText());
             assertNotNull(book.findElement(By.className("cover-element")).isDisplayed());
@@ -139,6 +146,7 @@ public class SeleniumTest {
     // search.
     @Test
     public void testSearchFormElementsIncluded() {
+        // Attempt to find the correct UI element for use
         WebElement searchForm = null;
 
         try {
@@ -147,10 +155,12 @@ public class SeleniumTest {
             fail(e.getMessage());
         }
 
+        // Assert it has the correct elements within it
         assertNotNull(searchForm.findElement(By.id("search-input")));
         assertNotNull(searchForm.findElement(By.id("search-type")));
         assertNotNull(searchForm.findElement(By.id("search-button")));
 
+        // Check the select element's options and make assertions
         List<WebElement> options = searchForm.findElements(By.tagName("option"));
         boolean selectOptionsValid = true;
         boolean optionTitleExists = false;
@@ -178,6 +188,7 @@ public class SeleniumTest {
     // returned from a search result.
     @Test
     public void testDisplayDetailedBookInformation() {
+        // Attempt to find the correct UI element for use
         WebElement searchInput = null;
         WebElement searchType = null;
         WebElement searchButton = null;
@@ -191,26 +202,33 @@ public class SeleniumTest {
             fail(e.getMessage());
         }
 
+        // Use elements to send a query
         searchType.sendKeys("title");
         searchInput.sendKeys("test");
         searchButton.click();
 
+        // Wait until the book list has loaded
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("book-list")));
 
+        // Wait until the first book has loaded
         WebElement firstBookItem = wait
                 .until(ExpectedConditions.elementToBeClickable(By.cssSelector("#book-list > li:first-child")));
 
+        // Now interact with the element and make assertions
         firstBookItem.click();
         WebElement selectedBook = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("selected-book")));
         assertNotNull(selectedBook, "Element with id of selected-book cannot be found.");
         assertTrue(selectedBook.isDisplayed(), "Element with id of selected-book is not displayed.");
 
+        // Assert booklist is not visible
         WebElement bookList = webDriver.findElement(By.id("book-list"));
         assertFalse(bookList.isDisplayed(), "If a single book is clicked, the booklist should not be visible");
 
+        // Wait for cover to load in visually, it can take a few seconds
         WebElement coverElement = selectedBook.findElement(By.className("cover-element"));
         wait.until(ExpectedConditions.visibilityOf(coverElement));
 
+        // Assert the book's necessary data is visible
         assertNotNull(selectedBook.findElement(By.className("title-element")).getText());
         assertNotNull(selectedBook.findElement(By.className("author-element")).getText());
         assertTrue(selectedBook.findElement(By.className("cover-element")).isDisplayed());
@@ -239,7 +257,7 @@ public class SeleniumTest {
 
         // Use elements to send a query
         searchType.sendKeys("title");
-        searchInput.sendKeys("harry potter");
+        searchInput.sendKeys("test");
         searchButton.click();
 
         // Wait for the booklist to load
@@ -262,16 +280,16 @@ public class SeleniumTest {
         assertFalse(books.isEmpty(), "No books displayed.");
 
         for (int i = 0; i < books.size() - 1; i++) {
-            
-            String ratingTextA = books.get(i).findElement(By.className("rating-element")).getText().split(": ")[1];
-            float ratingA = ratingTextA.equals("Unknown") ? 0.0f : Float.parseFloat(ratingTextA);
-            System.out.println("Rating A is: " + ratingA);
-    
-            String ratingTextB = books.get(i + 1).findElement(By.className("rating-element")).getText().split(": ")[1];
-            float ratingB = ratingTextB.equals("Unknown") ? 0.0f : Float.parseFloat(ratingTextB);
-            System.out.println("Rating B is: " + ratingB);
+            String ratingA = books.get(i).findElement(By.className("rating-element")).getText();
+            float ratingOfCurrentBook = Float
+                    .parseFloat(ratingA.replaceAll("[^0-9.]", ""));
 
-            if (ratingA < ratingB) {
+            String ratingB = books.get(i + 1).findElement(By.className("rating-element")).getText();
+            System.out.println(ratingA + " and " + ratingB);
+            float ratingOfNextBook = Float
+                    .parseFloat(ratingB.replaceAll("[^0-9.]", ""));
+
+            if (ratingOfCurrentBook < ratingOfNextBook) {
                 fail("Books are not sorted.");
             }
 
@@ -298,7 +316,7 @@ public class SeleniumTest {
 
         // Use elements to send a query
         searchType.sendKeys("title");
-        searchInput.sendKeys("harry potter");
+        searchInput.sendKeys("test");
         searchButton.click();
 
         // Find and use filter checkbox
@@ -325,12 +343,13 @@ public class SeleniumTest {
         for (int i = 0; i < books.size() - 1; i++) {
             WebElement book = books.get(i);
             String ebookValue = book.findElement(By.className("ebook-element")).getText().toLowerCase();
-            System.out.println(ebookValue);
-            if (book.isDisplayed() && !ebookValue.equalsIgnoreCase("eBook Access: Available")) {
+            if (book.isDisplayed() && !ebookValue.contains("borrowable")) {
                 fail("A book's ebook value is not 'borrowable'");
             }
-        };
+        }
+        ;
     }
+
     // Semantic elements should be included in HTML for web accessibility.
     @Test
     public void testSemanticHtmlElements() {
@@ -367,9 +386,7 @@ public class SeleniumTest {
     }
 }
 
-
 class TestingUtils {
-
     public static String getContent(String filename) {
         String content = "";
         try {
@@ -380,7 +397,3 @@ class TestingUtils {
         return content;
     }
 }
-
-
-    
-    
