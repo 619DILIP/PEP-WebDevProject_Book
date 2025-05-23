@@ -1,4 +1,4 @@
-# 📚 Book Finder – Full Stack Project
+# 📚 Book Finder – Frontend JavaScript Project
 
 Build a web application that allows users to search for books using the **Google Books API**, filter and sort results, and view detailed information about selected books.
 
