@@ -6,13 +6,15 @@ Build a web application that allows users to search for books using the **Google
 
 ## 🧠 Background
 
-In a full-stack application, both the **frontend** (which handles UI and user interaction) and the **backend** (which processes data and APIs) work together to provide functionality.
+In modern web development, the frontend plays a key role in delivering an interactive and engaging user experience. This project focuses on building a fully functional **client-side web application** using only HTML, CSS, and JavaScript.
+
+You will use the **Google Books API** to fetch book data and dynamically display search results, giving users the ability to explore books by title, author, or ISBN.
 
 This project emphasizes:
 
-- Using HTML/CSS/JavaScript on the frontend.
-- Fetching and handling data from the **Google Books API**.
-- Dynamically rendering results and handling user actions.
+- Using semantic HTML and responsive CSS
+- Fetching and processing external API data with JavaScript
+- Dynamically updating the DOM based on user interactions
 
 ---
 
